@@ -1,0 +1,54 @@
+# put here your custom config value
+menu "Application Configuration"
+config ESP_WIFI_SSID
+    string "WiFi SSID"
+    default "myssid"
+    help
+	SSID (network name) for the example to connect to.
+
+config ESP_WIFI_PASSWORD
+    string "WiFi Password"
+    default "mypassword"
+    help
+	WiFi password (WPA or WPA2) for the example to use.
+config ESP_MAXIMUM_RETRY
+    int "Maximum retry"
+    default 5
+    help
+    Set the Maximum retry to avoid station reconnecting to the AP unlimited when the AP is really inexistent.
+config BROKER_URL
+    string "Broker URL"
+    default "mqtt://mqtt.eclipse.org"
+    help
+    URL of the mqtt broker to connect to
+config I2C_PIN_SDA
+    int "I2C SDA Pin"
+    default 26
+    help
+    SDA Pin for I2C Controller
+config I2C_PIN_SCL
+    int "I2C SCL Pin"
+    default 25
+    help
+    SCL Pin for I2C Controller
+config USE_DHT11
+    bool "Use DHT11 sensor"
+    default y
+    help
+    Set if DHT11 sensor is used
+config USE_BMP180
+    bool "Use BMP180 sensor"
+    default y
+    help
+    Set if BMP180 sensor is used
+config USE_SH1106
+    bool "Use SH1106 OLED Display"
+    default y
+    help
+    Set if SH1106 OLED Display is used
+config USE_MQTT
+    bool "Use MQTT broker"
+    default y
+    help
+    Set if MQTT broker is used            
+endmenu

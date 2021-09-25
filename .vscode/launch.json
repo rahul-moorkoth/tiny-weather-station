@@ -1,0 +1,64 @@
+{
+	"version": "0.2.0",
+	"configurations": [	
+		
+		{
+			"name": "Debug",
+			"type": "gdb",
+			"request": "launch",
+			"target": "./build/${workspaceFolderBasename}.elf",
+			"cwd": "${workspaceRoot}",
+			"gdbpath": "xtensa-esp32-elf-gdb",
+			"preLaunchTask": "OpenOCD",
+			"autorun": [
+                "target remote :3333",
+				"set remote hardware-watchpoint-limit 2",
+                "mon reset halt",
+                "flushregs",
+                "thb app_main",
+                "x $a1=0",
+				"c"
+			],
+		},
+		{
+            "name": "cpp debug (slow)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/${workspaceFolderBasename}.elf",
+            "args": [],
+            "stopAtEntry": true,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "miDebuggerPath": "${env:HOME}/.espressif/tools/xtensa-esp32-elf/esp-2021r1-8.4.0/xtensa-esp32-elf/bin/xtensa-esp32-elf-gdb",
+			"preLaunchTask": "OpenOCD",
+			"setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "text": "target remote localhost:3333"
+                },
+                {
+                    "text": "monitor reset halt"
+                },
+                {
+                    "text": "flushregs"
+                },
+                {
+                    "text": "thb app_main"
+                }
+            ],
+            "logging": {
+                "trace": false,
+                "traceResponse": true,
+                "engineLogging": false
+            }
+        }
+		
+	]
+}
+

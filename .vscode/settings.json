@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "mutex": "cpp",
+        "sh1106.h": "c"
+    },
+    "C_Cpp.errorSquiggles": "Enabled"
+}

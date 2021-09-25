@@ -1,0 +1,69 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "OpenOCD",
+        "type": "shell",
+        "isBackground": true,
+        "command": "openocd -f interface/ftdi/esp32_devkitj_v1.cfg -f board/esp32-wrover-kit-3.3v.cfg",
+        "problemMatcher": [
+          {
+            "pattern": [
+              {
+                "regexp": ".",
+                "file": 1,
+                "location": 2,
+                "message": 3
+              }
+            ],
+            "background": {
+              "activeOnStart": true,
+              "beginsPattern": ".",
+              "endsPattern": ".",
+            }
+          }
+        ]
+      },
+      {
+        "label": "ESP32 Flash",
+        "type":"shell",
+        "command": "make",
+        "args": [
+            "flash",
+            "ESPPORT=/dev/ttyUSB0"
+        ],
+        "presentation": {
+            "reveal": "always",
+            "echo": true
+        },
+        "problemMatcher": []
+      },
+      {
+        "label": "ESP32 Monitor",
+        "type":"shell",
+        "command": "make",
+        "args": [
+            "monitor",
+            "ESPPORT=/dev/ttyUSB0"
+        ],
+        "presentation": {
+            "reveal": "always",
+            "echo": true
+        },
+        "problemMatcher": []
+      },
+      {
+        "label": "ESP32 Menu Config",
+        "type":"shell",
+        "command": "make",
+        "args": [
+            "menuconfig"
+        ],
+        "presentation": {
+            "reveal": "always",
+            "echo": true
+        },
+        "problemMatcher": []
+      }
+    ]
+  }
