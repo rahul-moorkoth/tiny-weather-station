@@ -5,7 +5,7 @@ The software is designed so that you do not necessarily need all components.
 For example, you can configure the weather station without display or without humidity sensor.
 The project uses the esp-idf tool V4.3 with support files for the Espressif Visual Studio Code extension.
 
-The programming is not designed for maximum efficiency but uses FreeRTOS task implementations to read the sensor data and output the data via serial interface, MQTT and display.
+The software is not designed for maximum efficiency. It uses a FreeRTOS task implementation to read sensor data and output the data via serial interface, MQTT and display.
 
 ### SH1106 OLED Display
 
