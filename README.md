@@ -12,7 +12,7 @@ The programming is not designed for maximum efficiency but uses FreeRTOS task im
 ![Display](./docs/weatherstation_display.png "Title")
 
 ### Circuit Diagram
-![NodeMCU ESP32](./docs/tinyweatherstation.svg "Title")
+![NodeMCU ESP32](./docs/weatherstation_circuit_diagram.png "Title")
 
 ### Software Diagram
 ![Software](./docs/weatherstation.svg "Title")
