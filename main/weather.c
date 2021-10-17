@@ -1,4 +1,4 @@
- /* Copyright 2021 Winfried Klum
+/* Copyright 2021 Winfried Klum
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -59,6 +59,16 @@ static EventGroupHandle_t s_wifi_event_group;
 #define TOPIC_TEMP "/topic/temp"
 #define TOPIC_PRESSURE "/topic/pressure"
 #define TOPIC_HUMIDITY "/topic/hum"
+
+/*MIN,MAX values for sensors*/
+#define MIN_TEMP 4
+#define MAX_TEMP 45
+#define MIN_HUM 20
+#define MAX_HUM 90
+#define MIN_PRESSURE 40000
+#define MAX_PRESSURE 110000
+#define MIN_ALTITUDE 0
+#define MAX_ALTITUDE 6000
 
 /* Compensate altitude measurement
    using current reference pressure, preferably at the sea level,
@@ -195,25 +205,27 @@ static void event_handler(void *arg, esp_event_base_t event_base,
 }
 
 /*Install I2C Bus driver*/
-esp_err_t i2c_master_init(int pin_sda, int pin_scl){
+esp_err_t i2c_master_init(int pin_sda, int pin_scl)
+{
     esp_err_t err;
 
     i2c_config_t conf = {
-    .mode = I2C_MODE_MASTER,
-    .sda_io_num = pin_sda,
-    .sda_pullup_en = GPIO_PULLUP_ENABLE,
-    .scl_io_num = pin_scl,
-    .scl_pullup_en = GPIO_PULLUP_ENABLE,
-    .master.clk_speed = 100000
-    };
+        .mode = I2C_MODE_MASTER,
+        .sda_io_num = pin_sda,
+        .sda_pullup_en = GPIO_PULLUP_ENABLE,
+        .scl_io_num = pin_scl,
+        .scl_pullup_en = GPIO_PULLUP_ENABLE,
+        .master.clk_speed = 100000};
 
     err = i2c_param_config(I2C_NUM_0, &conf);
-    if (err != ESP_OK) {
+    if (err != ESP_OK)
+    {
         ESP_LOGE(TAG, "I2C driver configuration failed with error = %d", err);
         return ESP_FAIL;
     }
     i2c_driver_install(I2C_NUM_0, I2C_MODE_MASTER, 0, 0, 0);
-    if (err != ESP_OK) {
+    if (err != ESP_OK)
+    {
         ESP_LOGE(TAG, "I2C driver installation failed with error = %d", err);
         return ESP_FAIL;
     }
@@ -320,10 +332,10 @@ static void write_data(void)
     //Configure CONFIG_MQTT_SKIP_PUBLISH_IF_DISCONNECTED through menuconfig
     //if you don't want to publish when you are disconnected
     snprintf(t_buffer, 10, "%f", sensor.temperature);
-    snprintf(p_buffer, 15, "%d", sensor.pressure);
+    snprintf(p_buffer, 15, "%d", sensor.pressure / 100);
     itoa(sensor.humidity, h_buffer, 10);
-    ESP_LOGI(TAG, "Pressure: %d Pa, Altitude: %.1fm, Temp: %.1fC, Humidity: %d%%", sensor.pressure, sensor.altitude, sensor.temperature, sensor.humidity);
-#if (CONFIG_USE_MQTT)    
+    ESP_LOGI(TAG, "Pressure: %d hPa, Altitude: %.1fm, Temp: %.1fC, Humidity: %d%%", sensor.pressure / 100, sensor.altitude, sensor.temperature, sensor.humidity);
+#if (CONFIG_USE_MQTT)
     int msg_id = esp_mqtt_client_publish(mqtt.client, TOPIC_TEMP, t_buffer, 0, 1, 1);
     msg_id = esp_mqtt_client_publish(mqtt.client, TOPIC_PRESSURE, p_buffer, 0, 1, 0);
     msg_id = esp_mqtt_client_publish(mqtt.client, TOPIC_HUMIDITY, h_buffer, 0, 1, 0);
@@ -331,13 +343,13 @@ static void write_data(void)
     {
         ESP_LOGE(TAG, "Unable to publish to %s", CONFIG_BROKER_URL);
     }
-#endif    
+#endif
 }
 
 /*Write display and mqtt data*/
 static void task_write_data(void *data)
 {
-#if (CONFIG_USE_SH1106)  
+#if (CONFIG_USE_SH1106)
     char s_buffer[128];
     uint8_t sig;
     esp_err_t err;
@@ -391,35 +403,77 @@ static void task_read_sensors(void *arg)
         {
 #if (CONFIG_USE_DHT11)
             int _rVal = DHT11_read().humidity;
-            if (_rVal > 0)
+            if ((_rVal > MIN_HUM) && (_rVal < MAX_HUM))
             {
                 sensor.humidity = (uint32_t)_rVal;
-            }else{
-                ESP_LOGE(TAG, "Error reading DHT11");
+            }
+            else
+            {
+                ESP_LOGE(TAG, "Error reading DHT11 humidity");
             }
 #endif
 #if (!CONFIG_USE_BMP180 && CONFIG_USE_DHT11)
             _rVal = DHT11_read().temperature;
-            if (_rVal)
+            if ((_rVal > MIN_TEMP) && (_rVal < MAX_TEMP))
             {
                 sensor.temperature = (float)_rVal;
             }
+            else
+            {
+                ESP_LOGE(TAG, "Error reading DHT11 altitude");
+            }
 #endif
 #if (CONFIG_USE_BMP180)
-            esp_err_t err = bmp180_read_pressure(&sensor.pressure);
+            u_int32_t bmp_pressure;
+            float bmp_altitude;
+            float bmp_temperature;
+            esp_err_t err = bmp180_read_pressure(&bmp_pressure);
             if (err != ESP_OK)
             {
                 ESP_LOGE(TAG, "Error reading BMP180, err = %d", err);
             }
-            err = bmp180_read_altitude(REFERENCE_PRESSURE, &sensor.altitude);
+            else
+            {
+                if ((bmp_pressure > MIN_PRESSURE) && (bmp_pressure < MAX_PRESSURE))
+                {
+                    sensor.pressure = bmp_pressure;
+                }
+                else
+                {
+                    ESP_LOGE(TAG, "Error reading BMP180, pressure out of range");
+                }
+            }
+            err = bmp180_read_altitude(REFERENCE_PRESSURE, &bmp_altitude);
             if (err != ESP_OK)
             {
                 ESP_LOGE(TAG, "Error reading BMP180, err = %d", err);
             }
-            err = bmp180_read_temperature(&sensor.temperature);
+            else
+            {
+                if ((bmp_altitude > MIN_ALTITUDE) && (bmp_altitude < MAX_ALTITUDE))
+                {
+                    sensor.altitude = bmp_altitude;
+                }
+                else
+                {
+                    ESP_LOGE(TAG, "Error reading BMP180, altitude out of range");
+                }
+            }
+            err = bmp180_read_temperature(&bmp_temperature);
             if (err != ESP_OK)
             {
                 ESP_LOGE(TAG, "Error reading BMP180, err = %d", err);
+            }
+            else
+            {
+                if ((bmp_temperature > MIN_TEMP) && bmp_temperature < MAX_TEMP)
+                {
+                    sensor.temperature = bmp_temperature;
+                }
+                else
+                {
+                    ESP_LOGE(TAG, "Error reading BMP180, temperature out of range");
+                }
             }
 #endif
 #ifdef APP_DEBUG
