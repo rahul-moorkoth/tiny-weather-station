@@ -331,14 +331,14 @@ static void write_data(void)
     char p_buffer[15];
     //Configure CONFIG_MQTT_SKIP_PUBLISH_IF_DISCONNECTED through menuconfig
     //if you don't want to publish when you are disconnected
-    snprintf(t_buffer, 10, "%f", sensor.temperature);
+    snprintf(t_buffer, 10, "%0.1f", sensor.temperature);
     snprintf(p_buffer, 15, "%d", sensor.pressure / 100);
     itoa(sensor.humidity, h_buffer, 10);
-    ESP_LOGI(TAG, "Pressure: %d hPa, Altitude: %.1fm, Temp: %.1fC, Humidity: %d%%", sensor.pressure / 100, sensor.altitude, sensor.temperature, sensor.humidity);
+    ESP_LOGI(TAG, "Pressure: %d hPa, Altitude: %f m, Temp: %0.1f C, Humidity: %d %%", sensor.pressure / 100, sensor.altitude, sensor.temperature, sensor.humidity);
 #if (CONFIG_USE_MQTT)
     int msg_id = esp_mqtt_client_publish(mqtt.client, TOPIC_TEMP, t_buffer, 0, 1, 1);
-    msg_id = esp_mqtt_client_publish(mqtt.client, TOPIC_PRESSURE, p_buffer, 0, 1, 0);
-    msg_id = esp_mqtt_client_publish(mqtt.client, TOPIC_HUMIDITY, h_buffer, 0, 1, 0);
+    msg_id = esp_mqtt_client_publish(mqtt.client, TOPIC_PRESSURE, p_buffer, 0, 1, 1);
+    msg_id = esp_mqtt_client_publish(mqtt.client, TOPIC_HUMIDITY, h_buffer, 0, 1, 1);
     if (msg_id < 0)
     {
         ESP_LOGE(TAG, "Unable to publish to %s", CONFIG_BROKER_URL);
