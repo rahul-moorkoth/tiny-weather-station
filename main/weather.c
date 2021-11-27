@@ -324,7 +324,7 @@ static uint8_t signal_strength_symbol(wifi_ap_record_t *ap_info)
 }
 
 /*mqtt write*/
-static void write_data(void)
+static void write_mqtt_data(void)
 {
     char t_buffer[10];
     char h_buffer[10];
@@ -378,7 +378,7 @@ static void task_write_data(void *data)
             else
             {
                 sig = DISCONNECTED_SYMBOL;
-                if (disc_counter++ == 6)
+                if (disc_counter++ > 2)
                 {
                     esp_wifi_connect();
                     disc_counter = 0;
@@ -387,13 +387,15 @@ static void task_write_data(void *data)
             snprintf(s_buffer, 100, "      %c%c      %c\nTemp:    %+3.1fC\n \nHumidity:  %3d%%\n \nAltitude: %4dm\n \nPressure:%4dhP", ANTENNA_SYMBOL, sig, (mqtt.connected ? MQTT_SYMBOL : ' '), sensor.temperature, sensor.humidity, (int)sensor.altitude, (int)(sensor.pressure / 100));
             sh1106_display_text(s_buffer);
 #endif
-            write_data();
+            if (wifi.connected){
+                write_mqtt_data();
+            }
             xSemaphoreGive(ctrl_sem1);
         }
     }
 }
 
-/* Read all sensor data*/
+/* Read sensor data*/
 static void task_read_sensors(void *arg)
 {
     for (;;)
