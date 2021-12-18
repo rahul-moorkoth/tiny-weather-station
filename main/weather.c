@@ -87,7 +87,7 @@ static struct
 {
     uint32_t humidity;
     float temperature;
-    float altitude;
+    uint32_t altitude;
     uint32_t pressure;
 } sensor;
 
@@ -191,7 +191,8 @@ static void event_handler(void *arg, esp_event_base_t event_base,
         else
         {
             xEventGroupSetBits(s_wifi_event_group, WIFI_FAIL_BIT);
-            ESP_LOGI(TAG, "connect to the AP failed");
+            ESP_LOGI(TAG, "connect to the AP failed, restarting...");
+            esp_restart();
         }
     }
     else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP)
@@ -334,7 +335,7 @@ static void write_mqtt_data(void)
     snprintf(t_buffer, 10, "%0.1f", sensor.temperature);
     snprintf(p_buffer, 15, "%d", sensor.pressure / 100);
     itoa(sensor.humidity, h_buffer, 10);
-    ESP_LOGI(TAG, "Pressure: %d hPa, Altitude: %f m, Temp: %0.1f C, Humidity: %d %%", sensor.pressure / 100, sensor.altitude, sensor.temperature, sensor.humidity);
+    ESP_LOGI(TAG, "Pressure: %d hPa, Altitude: %d m, Temp: %0.1f C, Humidity: %d %%", sensor.pressure / 100, sensor.altitude, sensor.temperature, sensor.humidity);
 #if (CONFIG_USE_MQTT)
     int msg_id = esp_mqtt_client_publish(mqtt.client, TOPIC_TEMP, t_buffer, 0, 1, 1);
     msg_id = esp_mqtt_client_publish(mqtt.client, TOPIC_PRESSURE, p_buffer, 0, 1, 1);
