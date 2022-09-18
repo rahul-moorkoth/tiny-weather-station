@@ -32,6 +32,7 @@
 #include "dht11.h"
 #include "bmp180.h"
 #include "sh1106.h"
+#include "bmp280.h"
 
 //#define APP_DEBUG
 #define WIFI_SSID CONFIG_ESP_WIFI_SSID
@@ -105,6 +106,57 @@ static struct
 
 static const char *TAG = "weather";
 static SemaphoreHandle_t ctrl_sem1;
+esp_err_t res;
+bmp280_params_t params_b;
+bmp280_t dev_b;
+
+#if (CONFIG_USE_BMP280)
+void init_bme280()
+{
+    bmp280_init_weather_params(&params_b);
+
+    while (bmp280_init_desc(&dev_b, BMP280_I2C_ADDRESS_1, 0, I2C_PIN_SDA, I2C_PIN_SCL) != ESP_OK)
+    {
+        printf("Could not init device descriptor\n");
+        vTaskDelay(250 / portTICK_PERIOD_MS);
+    }
+
+    while ((res = bmp280_init(&dev_b, &params_b)) != ESP_OK)
+    {
+        printf("Could not init BMP280, err: %d\n", res);
+        vTaskDelay(250 / portTICK_PERIOD_MS);
+    }
+
+    // bool bme280p = dev.id == BME280_CHIP_ID;
+    // printf("BMP280: found %s\n", bme280p ? "BME280" : "BMP280");
+}
+
+void bmp280_read(void *pvParamters)
+{
+    float pressure, temperature, humidity;
+
+    while (1)
+    {
+        vTaskDelay(10 * 1000  / portTICK_PERIOD_MS);
+        if (bmp280_force_measurement(&dev_b) != ESP_OK)
+        {
+            printf("Force measurement failed\n");
+            continue;
+        }
+        if (bmp280_read_float(&dev_b, &temperature, &pressure, &humidity) != ESP_OK)
+        {
+            printf("Temperature/pressure reading failed\n");
+            continue;
+        }
+
+        printf("Pres: %.2f Pa, Temp: %.2f C, Hum: %.2f%%\n", pressure, temperature, humidity);
+        // printf("Pressure: %.2f Pa, Temperature: %.2f C, Humidity: %.2f%%\n", pressure, temperature, humidity);
+	sensor.temperature = temperature;
+	sensor.pressure = pressure;
+	sensor.humidity = humidity;
+    }
+}
+#endif
 
 #if (CONFIG_USE_MQTT)
 /*mqtt event handler*/
@@ -351,7 +403,8 @@ static void write_mqtt_data(void)
 static void task_write_data(void *data)
 {
 #if (CONFIG_USE_SH1106)
-    char s_buffer[128];
+    int max_buf_size = 128;
+    char s_buffer[max_buf_size];
     uint8_t sig;
     esp_err_t err;
     wifi_ap_record_t ap_info;
@@ -385,7 +438,14 @@ static void task_write_data(void *data)
                     disc_counter = 0;
                 }
             }
+	    memset(s_buffer, 0, max_buf_size*sizeof(s_buffer[0]));
+	    sh1106_display_clear(NULL);
+            #if CONFIG_USE_BMP180
             snprintf(s_buffer, 100, "      %c%c      %c\nTemp:    %+3.1fC\n \nHumidity:  %3d%%\n \nAltitude: %4dm\n \nPressure:%4dhP", ANTENNA_SYMBOL, sig, (mqtt.connected ? MQTT_SYMBOL : ' '), sensor.temperature, sensor.humidity, (int)sensor.altitude, (int)(sensor.pressure / 100));
+	    #endif
+            #if CONFIG_USE_BMP280
+            snprintf(s_buffer, 100, "      %c%c      %c\n \nTemp:    %+3.1fC\n \nPressure:%4dhP", ANTENNA_SYMBOL, sig, (mqtt.connected ? MQTT_SYMBOL : ' '), sensor.temperature, (int)(sensor.pressure / 100));
+	    #endif
             sh1106_display_text(s_buffer);
 #endif
             if (wifi.connected){
@@ -510,6 +570,14 @@ void app_main()
     //Init BMP180 Sensor
     ESP_ERROR_CHECK(bmp180_init());
 #endif
+#if (CONFIG_USE_BMP280)
+    while (i2cdev_init() != ESP_OK)
+    {
+        printf("Could not init I2Cdev library\n");
+        vTaskDelay(250 / portTICK_PERIOD_MS);
+    }
+    init_bme280();
+#endif
 #if (CONFIG_USE_SH1106)
     //Init OLED Display
     sh1106_init();
@@ -517,7 +585,8 @@ void app_main()
     //Write initial display message
     {
         char s_buffer[128];
-        snprintf(s_buffer, 100, "\nThe Tiny\n \nWeather\n \nStation\n \n(c)2021 W.Klum");
+	//snprintf(s_buffer, 100, "\nThe Tiny\n \nWeather\n \nStation\n \n(c)2021 W.Klum");
+	snprintf(s_buffer, 100, "\n Weather\n \n Station\n");
         sh1106_display_text(s_buffer);
     }
 #endif
@@ -527,7 +596,12 @@ void app_main()
     mqtt_app_start();
 #endif
     ctrl_sem1 = xSemaphoreCreateBinary();
+#if (CONFIG_USE_BMP180)
     xTaskCreatePinnedToCore(task_read_sensors, "readSensors", STACK_SIZE, (void *)1, uxTaskPriorityGet(NULL), NULL, 1);
+#endif
+#if (CONFIG_USE_BMP280)
+    xTaskCreatePinnedToCore(bmp280_read, "bmp280_read", configMINIMAL_STACK_SIZE * 8, NULL, 5, NULL, APP_CPU_NUM);
+#endif
     xTaskCreatePinnedToCore(task_write_data, "writeDataTask", STACK_SIZE, (void *)1, uxTaskPriorityGet(NULL), NULL, 1);
     xSemaphoreGive(ctrl_sem1);
 }

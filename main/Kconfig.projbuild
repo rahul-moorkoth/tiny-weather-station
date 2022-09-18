@@ -38,9 +38,14 @@ config USE_DHT11
     Set if DHT11 sensor is used
 config USE_BMP180
     bool "Use BMP180 sensor"
-    default y
+    default n
     help
     Set if BMP180 sensor is used
+config USE_BMP280
+    bool "Use BMP280 sensor"
+    default y
+    help
+    Set if BMP280 sensor is used
 config USE_SH1106
     bool "Use SH1106 OLED Display"
     default y
@@ -50,5 +55,5 @@ config USE_MQTT
     bool "Use MQTT broker"
     default y
     help
-    Set if MQTT broker is used            
+    Set if MQTT broker is used
 endmenu
