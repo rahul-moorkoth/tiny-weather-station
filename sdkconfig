@@ -127,6 +127,12 @@ CONFIG_PARTITION_TABLE_MD5=y
 # end of Partition Table
 
 #
+# Weather data retreival from OpenWeatherMap
+#
+CONFIG_OPENWEATHERMAP_API_KEY="95d55f551656178f7ed8928f4acf550a"
+# end of Weather data retreival from OpenWeatherMap
+
+#
 # Application Configuration
 #
 CONFIG_ESP_WIFI_SSID="PEACE"
@@ -642,8 +648,8 @@ CONFIG_HEAP_TRACING_OFF=y
 #
 # jsmn
 #
-# CONFIG_JSMN_PARENT_LINKS is not set
-# CONFIG_JSMN_STRICT is not set
+CONFIG_JSMN_PARENT_LINKS=y
+CONFIG_JSMN_STRICT=y
 # end of jsmn
 
 #

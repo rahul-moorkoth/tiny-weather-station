@@ -33,6 +33,7 @@
 #include "bmp180.h"
 #include "sh1106.h"
 #include "bmp280.h"
+#include "openweather.h"
 
 //#define APP_DEBUG
 #define WIFI_SSID CONFIG_ESP_WIFI_SSID
@@ -84,6 +85,10 @@ static EventGroupHandle_t s_wifi_event_group;
 /* Stacksize used for Tasks*/
 #define STACK_SIZE 2000
 
+// reference pressure retrieval
+#define WEATHER_DATA_RETREIVAL_PERIOD 60000
+RTC_DATA_ATTR static unsigned long reference_pressure = 0l;
+
 static struct
 {
     uint32_t humidity;
@@ -109,6 +114,16 @@ static SemaphoreHandle_t ctrl_sem1;
 esp_err_t res;
 bmp280_params_t params_b;
 bmp280_t dev_b;
+
+void weather_data_retreived(uint32_t *args)
+{
+    weather_data* weather = (weather_data*) args;
+
+    reference_pressure = (unsigned long) (weather->pressure * 100);
+    ESP_LOGI(TAG, "Openweather pressure: %lu Pa", reference_pressure);
+    ESP_LOGI(TAG, "Openweather temperature: %f K", weather->temperature);
+    ESP_LOGI(TAG, "Openweather humidity: %d ", weather->humidity);
+}
 
 #if (CONFIG_USE_BMP280)
 void init_bme280()
@@ -562,6 +577,8 @@ void app_main()
     }
     ESP_ERROR_CHECK(ret);
     ESP_ERROR_CHECK(i2c_master_init(I2C_PIN_SDA, I2C_PIN_SCL));
+
+
 #if (CONFIG_USE_DHT11)
     //Initialize Humidity/Temperature sensor
     DHT11_init(GPIO_NUM_33);
@@ -604,4 +621,8 @@ void app_main()
 #endif
     xTaskCreatePinnedToCore(task_write_data, "writeDataTask", STACK_SIZE, (void *)1, uxTaskPriorityGet(NULL), NULL, 1);
     xSemaphoreGive(ctrl_sem1);
+
+    initialise_weather_data_retrieval(WEATHER_DATA_RETREIVAL_PERIOD);
+    on_weather_data_retrieval(weather_data_retreived);
+    ESP_LOGW(TAG, "Weather data retrieval initialized");
 }
